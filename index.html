@@ -102,6 +102,26 @@ button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
 .scene{position:relative; isolation:isolate; padding:28px 12px}
 .scene::before{content:""; position:absolute; inset:-60px -40px; z-index:-1; pointer-events:none;
   background:radial-gradient(closest-side, rgba(255,232,237,.97) 0%, rgba(255,232,237,.93) 62%, rgba(255,232,237,0) 100%)}
+/* Game */
+.game-wrap{position:relative; width:100%; border:4px solid var(--ink); border-radius:6px; overflow:hidden; background:var(--cream);
+  box-shadow:0 6px 0 rgba(74,22,38,.25); touch-action:none; -webkit-user-select:none; user-select:none}
+#game{display:block; width:100%; height:auto; aspect-ratio:16/9; image-rendering:pixelated; cursor:pointer}
+.hud{position:absolute; top:6px; left:8px; right:8px; display:flex; justify-content:space-between; gap:8px; pointer-events:none;
+  font-family:"Press Start 2P", ui-monospace, monospace; font-size:9px; line-height:1.4; color:var(--ink); text-align:left}
+.hud span{background:rgba(255,248,239,.85); padding:3px 5px; border-radius:3px}
+.g-overlay{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+  padding:12px; background:rgba(255,248,239,.94); text-align:center}
+.g-overlay .pixel{font-size:clamp(10px, 3vw, 15px)}
+.g-overlay p{font-size:14px; line-height:1.4; max-width:40ch}
+.g-btns{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+.g-btns button{font-size:14px; padding:9px 18px}
+.g-btns .alt{background:var(--cream); color:var(--ink); box-shadow:0 3px 0 #e8b9c4; border:2px solid #e8b9c4}
+.g-toast{position:absolute; left:50%; top:28%; transform:translateX(-50%); pointer-events:none; max-width:90%; text-align:center;
+  font-family:"Press Start 2P", ui-monospace, monospace; font-size:10px; line-height:1.5; color:var(--cream); background:var(--berry-dk);
+  padding:6px 8px; border-radius:4px; opacity:0; transition:opacity .2s}
+.g-toast.show{opacity:1}
+.play-btn{font-size:17px; padding:13px 24px}
+@media (min-width:700px){ .hud{font-size:12px} .g-overlay p{font-size:17px} .g-btns button{font-size:16px; padding:11px 22px} .g-toast{font-size:13px} }
 .lang-btn{position:fixed; z-index:20; top:calc(12px + env(safe-area-inset-top,0px)); right:max(12px, env(safe-area-inset-right,0px));
   background:var(--cream); color:var(--berry-dk); font-size:14px; font-weight:800; padding:9px 16px; box-shadow:0 3px 0 #e8b9c4;
   border:2px solid var(--berry-dk)}
@@ -178,7 +198,22 @@ button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
     <div class="letter" id="letter"></div>
     <p class="section-label" id="reasonsLabel"></p>
     <div class="reasons" id="reasons"></div>
+    <button class="yes play-btn" id="playBtn"></button>
     <button class="ghost" id="again"></button>
+  </section>
+
+  <!-- Scene 4: the game -->
+  <section class="scene" id="gameScene" hidden>
+    <p class="kicker" id="gKicker"></p>
+    <h2 id="gTitle"></h2>
+    <div class="game-wrap" id="gWrap">
+      <canvas id="game" width="160" height="90"></canvas>
+      <div class="hud"><span id="hudStage"></span><span id="hudCount"></span></div>
+      <div class="g-toast" id="gToast"></div>
+      <div class="g-overlay" id="gOverlay" hidden></div>
+    </div>
+    <p class="pixel small" id="gHelp"></p>
+    <button class="ghost" id="gBack"></button>
   </section>
 </main>
 
@@ -412,6 +447,7 @@ function render(){
   updateCount();
   $("letter").innerHTML = s.letter.map(l => `<p>${l}</p>`).join("<br>") + `<p class="sign">${s.from}</p>`;
   document.querySelectorAll(".reason .back").forEach((el, i) => { el.textContent = s.reasons[i]; });
+  if (window.gameText) window.gameText();
 }
 $("langBtn").addEventListener("click", () => { lang = lang === "it" ? "en" : "it"; render(); });
 render();
@@ -456,6 +492,240 @@ function loop(){
     if (parts.length || t < rainUntil) requestAnimationFrame(frame); else { running = false; ctx.clearRect(0,0,innerWidth,innerHeight); }
   })(performance.now());
 }
+
+/* ================= GAME: Anamika's journey to IUAV ================= */
+const GAME_TEXT = {
+  it: {
+    play: "Gioca: il viaggio di Anamika verso lo IUAV", kicker: "Livello bonus", title: "Il viaggio di Anamika verso lo IUAV",
+    help: "Tocca il gioco (o premi spazio) per saltare", back: "Torna alla lettera",
+    start: "Via!", next: "Avanti", replay: "Gioca ancora", collect: "Da raccogliere", oops: "Ops! Attenta!",
+    done: "Fatto!", officer: "L'ufficiale chiede:", visaOk: "Visto approvato!", wrong: "L'ufficiale alza un sopracciglio. Riprova.",
+    endTitle: "Benvenuta allo IUAV, Anamika!", endText: "Master in Architettura a Venezia: sbloccato. Altri livelli in arrivo…",
+    levels: [
+      { t: "Livello 1 · India", d: "Prepara i documenti per il visto.", items: ["Passaporto", "Foto tessera", "Estratto conto"] },
+      { t: "Livello 2 · Ammissione", d: "Arriva la risposta dallo IUAV!", items: ["Lettera di ammissione IUAV"] },
+      { t: "Livello 3 · Colloquio per il visto", d: "", items: [] },
+      { t: "Livello 4 · Aeroporto", d: "Si parte per Venezia.", items: ["Carta d'imbarco"] },
+      { t: "Livello 5 · Venezia", d: "Benvenuta! Ora i mezzi pubblici.", items: ["Biglietto ACTV"] },
+      { t: "Livello 6 · Mestre", d: "Trova casa al CX Mestre.", items: ["Chiave della camera"] },
+      { t: "Livello 7 · IUAV", d: "Ultimo passo: l'università.", items: ["Tessera studente IUAV"] }
+    ],
+    quiz: [
+      { q: "Perché l'Italia?", ok: "Per il Master in Architettura allo IUAV", no: "Solo per la pasta" },
+      { q: "Ha tutti i documenti?", ok: "Sì, tutti in ordine", no: "Li ha il mio gatto" },
+      { q: "Quando inizia il corso?", ok: "Questo semestre, a Venezia", no: "Quando mi sveglio" }
+    ]
+  },
+  en: {
+    play: "Play: Anamika's journey to IUAV", kicker: "Bonus level", title: "Anamika's journey to IUAV",
+    help: "Tap the game (or press space) to jump", back: "Back to the letter",
+    start: "Go!", next: "Next", replay: "Play again", collect: "To collect", oops: "Oops! Careful!",
+    done: "Done!", officer: "The officer asks:", visaOk: "Visa approved!", wrong: "The officer raises an eyebrow. Try again.",
+    endTitle: "Welcome to IUAV, Anamika!", endText: "Master's in Architecture in Venice: unlocked. More levels to follow…",
+    levels: [
+      { t: "Level 1 · India", d: "Get your visa documents ready.", items: ["Passport", "Passport photos", "Bank statement"] },
+      { t: "Level 2 · Admission", d: "IUAV has replied!", items: ["IUAV admission letter"] },
+      { t: "Level 3 · Visa interview", d: "", items: [] },
+      { t: "Level 4 · Airport", d: "Off to Venice.", items: ["Boarding pass"] },
+      { t: "Level 5 · Venice", d: "Welcome! Now, public transport.", items: ["ACTV ticket"] },
+      { t: "Level 6 · Mestre", d: "Find your home at CX Mestre.", items: ["Room key"] },
+      { t: "Level 7 · IUAV", d: "Last step: the university.", items: ["IUAV student ID"] }
+    ],
+    quiz: [
+      { q: "Why Italy?", ok: "For my Master's in Architecture at IUAV", no: "Only for the pasta" },
+      { q: "Do you have all your documents?", ok: "Yes, all in order", no: "My cat has them" },
+      { q: "When does your course start?", ok: "This semester, in Venice", no: "Whenever I wake up" }
+    ]
+  }
+};
+const G_LV = [
+  { sky: "#ffd9b0", far: "#e9a86a", ground: "#c98a55", obst: "cone", item: "doc", sun: 1 },
+  { sky: "#ffe3e8", far: "#f2b8c6", ground: "#b9a6a0", obst: "pile", item: "letter" },
+  { sky: "#e6eef5", far: "#c3d3e3", ground: "#9aa7b3", quiz: 1 },
+  { sky: "#d4e8f6", far: "#b7cde0", ground: "#9aa7b3", obst: "suitcase", item: "pass", plane: 1 },
+  { sky: "#c6e4f2", far: "#e7a47a", ground: "#d8c3a5", obst: "pigeon", item: "ticket", water: 1 },
+  { sky: "#e8e0d6", far: "#c9b8a8", ground: "#a59c94", obst: "puddle", item: "key" },
+  { sky: "#f6dcc8", far: "#d98f6a", ground: "#c9a27e", obst: "cone", item: "id", arches: 1 }
+];
+const OBST = { cone: { w: 6, h: 8 }, pile: { w: 9, h: 6 }, suitcase: { w: 9, h: 9 }, pigeon: { w: 8, h: 6 }, puddle: { w: 14, h: 3, oy: 3 } };
+const GIRL_PAL = { K: "#2b1b17", S: "#c98b62", G: "#222222", W: "#dff3ff", L: "#9aa3ad", O: "#e0893a", M: "#7fc8f8", R: "#d6335a", N: "#3b4c78", B: "#4a1626" };
+// Anamika: hair, specs, laptop in her backpack, water bottle in the side pocket
+const GIRL_TOP = ["...KKKK...", "..KKKKKK..", ".KKKSSSS..", ".KKGWGWG..", ".KKSSSSS..", ".KK.SSS...",
+  "LLORRRRR..", "OOORRRRRS.", "OOORRRRRS.", "OMORRRRR..", "OMO.RRR...", "....NNN..."];
+const LEGS_A = ["...NN.NN..", "..NN...NN.", "..NN...NN.", "..BB...BB."];
+const LEGS_B = ["....NNN...", "....NN....", "....NN....", "....BB...."];
+const LEGS_J = ["...NN.NN..", "..NN..NN..", "..BB..BB..", ".........."];
+const FAR = Array.from({ length: 12 }, (_, i) => ({ x: i * 22, w: 14 + (i * 7) % 9, h: 14 + (i * 13) % 22 }));
+
+const gc = $("game"), g = gc.getContext("2d");
+const GW = 160, GH = 90, GROUND = 76, INK = "#4a1626";
+const gt = () => GAME_TEXT[lang];
+let gLevel = 0, gGot = 0, gObjs = [], gScroll = 0, gSpawn = 40, gSince = 0, gPlay = false, gOv = null, gQuiz = 0, gFrame = 0, gLoopOn = false, gLast = 0, gToastT;
+const girl = { y: GROUND - 16, vy: 0, hit: 0 };
+const goal = () => gt().levels[gLevel].items.length;
+
+function Rc(x, y, w, h, c){ g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); }
+function sprite(map, x, y, pal){ map.forEach((row, j) => { for (let i = 0; i < row.length; i++){ const c = pal[row[i]]; if (c) Rc(x + i, y + j, 1, 1, c); } }); }
+
+function drawItem(type, x, y){
+  const fills = { doc: "#ffffff", letter: "#fff8ef", pass: "#7fb3e6", ticket: "#f5b53f", key: "#f5b53f", id: "#9fd8c4" };
+  Rc(x, y, 8, 8, INK); Rc(x + 1, y + 1, 6, 6, fills[type]);
+  if (type === "doc"){ Rc(x + 2, y + 2, 4, 1, "#9aa3ad"); Rc(x + 2, y + 4, 4, 1, "#9aa3ad"); Rc(x + 2, y + 6, 3, 1, "#9aa3ad"); }
+  if (type === "letter"){ Rc(x + 1, y + 2, 1, 1, INK); Rc(x + 2, y + 3, 1, 1, INK); Rc(x + 3, y + 4, 2, 1, "#d6335a"); Rc(x + 5, y + 3, 1, 1, INK); Rc(x + 6, y + 2, 1, 1, INK); }
+  if (type === "pass"){ Rc(x + 1, y + 3, 6, 1, "#ffffff"); Rc(x + 2, y + 5, 2, 1, INK); }
+  if (type === "ticket"){ Rc(x + 2, y + 2, 4, 1, INK); Rc(x + 2, y + 4, 2, 1, INK); }
+  if (type === "key"){ Rc(x + 2, y + 2, 2, 2, INK); Rc(x + 4, y + 4, 2, 1, INK); Rc(x + 5, y + 5, 1, 1, INK); }
+  if (type === "id"){ Rc(x + 2, y + 2, 2, 3, "#c98b62"); Rc(x + 5, y + 2, 1, 1, INK); Rc(x + 5, y + 4, 1, 1, INK); }
+  if (gFrame % 24 < 12) Rc(x + 8, y - 1, 1, 1, "#ffffff");
+}
+function drawObst(o){
+  const x = o.x, y = o.y;
+  if (o.type === "cone"){ Rc(x + 2, y, 2, 2, "#ff7a2f"); Rc(x + 1, y + 2, 4, 3, "#ff7a2f"); Rc(x + 1, y + 3, 4, 1, "#ffffff"); Rc(x, y + 5, 6, 3, "#ff7a2f"); Rc(x - 1, y + 7, 8, 1, INK); }
+  if (o.type === "pile"){ Rc(x, y, 9, 6, "#e7e7e7"); Rc(x, y, 9, 1, INK); Rc(x, y + 2, 9, 1, "#b9b9b9"); Rc(x, y + 4, 9, 1, "#b9b9b9"); }
+  if (o.type === "suitcase"){ Rc(x + 3, y, 3, 2, INK); Rc(x, y + 2, 9, 7, "#8a5a3b"); Rc(x, y + 5, 9, 1, "#5c3a24"); }
+  if (o.type === "pigeon"){ const f = gFrame % 16 < 8; Rc(x + 1, y + 1, 6, 4, "#8d93a3"); Rc(x, y, 3, 3, "#8d93a3"); Rc(x - 1, y + 1, 1, 1, "#e0893a");
+    Rc(x + 1, y + 1, 1, 1, INK); Rc(x + 4, y + (f ? 0 : 2), 3, 1, "#6d7383"); Rc(x + 3, y + 5, 1, 1, "#e0893a"); }
+  if (o.type === "puddle"){ Rc(x, y + 3, 14, 3, "#5aa9c9"); Rc(x + 3, y + 3, 4, 1, "#bfe6f5"); }
+}
+function drawWorld(){
+  const L = G_LV[gLevel];
+  Rc(0, 0, GW, GH, L.sky);
+  if (L.sun){ Rc(128, 10, 10, 10, "#ffb347"); Rc(126, 12, 14, 6, "#ffb347"); Rc(130, 8, 6, 14, "#ffb347"); }
+  if (L.plane){ const p = GW + 20 - ((gFrame * 0.5) % (GW + 60)); Rc(p, 16, 16, 3, "#ffffff"); Rc(p + 5, 12, 4, 10, "#ffffff"); Rc(p + 13, 12, 3, 4, "#ffffff"); Rc(p + 2, 17, 10, 1, "#7fb3e6"); }
+  const lift = L.water ? 8 : 0, off = (gScroll * 0.3) % 264;
+  FAR.forEach(b => {
+    const x = ((b.x - off) % 264 + 264) % 264 - 20, top = GROUND - lift - b.h;
+    Rc(x, top, b.w, b.h, L.far);
+    if (L.arches) Rc(x, top - 2, b.w, 2, L.far);
+    for (let wy = top + 3; wy < GROUND - lift - 5; wy += 6) for (let wx = x + 2; wx < x + b.w - 2; wx += 4)
+      Rc(wx, wy, 2, L.arches ? 4 : 2, L.arches ? L.sky : "rgba(255,255,255,.55)");
+  });
+  if (L.water){ Rc(0, GROUND - 8, GW, 8, "#5aa9c9"); for (let i = 0; i < 9; i++) Rc(((i * 20 - gScroll * 0.6) % GW + GW) % GW, GROUND - 5 + (i % 2) * 2, 6, 1, "#bfe6f5"); }
+  Rc(0, GROUND, GW, GH - GROUND, L.ground); Rc(0, GROUND, GW, 1, INK);
+  for (let i = 0; i < 14; i++) Rc(((i * 12 - gScroll) % GW + GW) % GW, GROUND + 5 + (i % 3) * 3, 4, 1, "rgba(74,22,38,.28)");
+  if (L.quiz){ // embassy desk and officer
+    Rc(110, GROUND - 27, 8, 8, "#c98b62"); Rc(109, GROUND - 29, 10, 3, "#3b4c78"); Rc(112, GROUND - 24, 1, 1, INK);
+    Rc(107, GROUND - 19, 14, 5, "#3b4c78"); Rc(96, GROUND - 14, 40, 14, "#7a5236"); Rc(96, GROUND - 14, 40, 1, INK);
+    Rc(100, GROUND - 16, 6, 2, "#ffffff");
+  }
+}
+function drawGirl(){
+  if (girl.hit > 0 && Math.floor(gFrame) % 6 < 3) return;
+  const x = 24, y = Math.round(girl.y), air = girl.y < GROUND - 16.5;
+  sprite(GIRL_TOP, x, y, GIRL_PAL);
+  sprite(air ? LEGS_J : (gPlay && Math.floor(gScroll / 6) % 2 ? LEGS_A : LEGS_B), x, y + 12, GIRL_PAL);
+}
+function gDraw(){
+  drawWorld();
+  gObjs.forEach(o => o.kind === "item" ? drawItem(o.type, o.x, o.y + Math.round(Math.sin(gFrame / 8))) : drawObst(o));
+  drawGirl();
+}
+function spawn(){
+  const L = G_LV[gLevel], need = goal() - gGot;
+  if (need > 0 && !gObjs.some(o => o.kind === "item") && (gSince >= 2 || Math.random() < .45)){
+    gSince = 0;
+    gObjs.push({ kind: "item", type: L.item, x: GW + 4, y: Math.random() < .5 ? GROUND - 34 : GROUND - 10, w: 8, h: 8, oy: 0 });
+  } else {
+    gSince++; const d = OBST[L.obst];
+    gObjs.push({ kind: "obst", type: L.obst, x: GW + 4, y: GROUND - d.h - (d.oy || 0), w: d.w, h: d.h, oy: d.oy || 0 });
+  }
+}
+function gUpdate(dt){
+  gFrame += dt;
+  if (!gPlay) return;
+  const sp = 1.15 * dt; gScroll += sp;
+  girl.vy += 0.22 * dt; girl.y += girl.vy * dt;
+  if (girl.y >= GROUND - 16){ girl.y = GROUND - 16; girl.vy = 0; }
+  if (girl.hit > 0) girl.hit -= dt;
+  gSpawn -= dt;
+  if (gSpawn <= 0){ spawn(); gSpawn = 60 + Math.random() * 40; }
+  const pb = { x: 26, y: girl.y + 1, w: 6, h: 15 };
+  gObjs.forEach(o => {
+    o.x -= sp * (o.type === "pigeon" ? 1.35 : 1);
+    const by = o.y + o.oy;
+    if (!o.gone && pb.x < o.x + o.w && pb.x + pb.w > o.x && pb.y < by + o.h && pb.y + pb.h > by){
+      if (o.kind === "item"){ o.gone = true; gotItem(); }
+      else if (girl.hit <= 0){ girl.hit = 50; toast(gt().oops); }
+    }
+  });
+  gObjs = gObjs.filter(o => !o.gone && o.x > -20);
+}
+function gotItem(){
+  toast("✓ " + gt().levels[gLevel].items[gGot]);
+  gGot++; updateHud();
+  if (gGot >= goal()){ gPlay = false; setTimeout(() => overlay({ type: "done" }), 800); }
+}
+function toast(msg){
+  const el = $("gToast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(gToastT); gToastT = setTimeout(() => el.classList.remove("show"), 1000);
+}
+function updateHud(){
+  const Lv = gt().levels[gLevel];
+  $("hudStage").textContent = Lv.t;
+  $("hudCount").textContent = G_LV[gLevel].quiz ? `${gQuiz}/3` : `${gGot}/${goal()}`;
+}
+function overlay(state){ gOv = state; drawOverlay(); }
+function drawOverlay(){
+  const el = $("gOverlay");
+  if (!gOv){ el.hidden = true; el.innerHTML = ""; return; }
+  const G = gt(), Lv = G.levels[gLevel]; let title = "", text = "", btns = [];
+  if (gOv.type === "intro"){
+    title = Lv.t; text = `${Lv.d}<br><b>${G.collect}:</b> ${Lv.items.join(", ")}`;
+    btns = [{ label: G.start, fn: () => { overlay(null); gPlay = true; } }];
+  } else if (gOv.type === "quiz"){
+    const q = G.quiz[gQuiz];
+    title = Lv.t; text = `${G.officer}<br><b>“${q.q}”</b>` + (gOv.wrong ? `<br><i>${G.wrong}</i>` : "");
+    const ok = { label: q.ok, fn: () => { gQuiz++; updateHud(); overlay(gQuiz >= G.quiz.length ? { type: "done" } : { type: "quiz" }); } };
+    const bad = { label: q.no, alt: 1, fn: () => overlay({ type: "quiz", wrong: 1 }) };
+    btns = gQuiz % 2 ? [bad, ok] : [ok, bad];
+  } else if (gOv.type === "done"){
+    title = "✓ " + G.done; text = G_LV[gLevel].quiz ? G.visaOk : Lv.items.map(i => "✓ " + i).join("<br>");
+    btns = [{ label: G.next, fn: nextLevel }];
+  } else if (gOv.type === "end"){
+    title = G.endTitle; text = G.endText;
+    btns = [{ label: G.replay, fn: () => startLevel(0) }, { label: G.back, alt: 1, fn: closeGame }];
+  }
+  el.hidden = false;
+  el.innerHTML = `<p class="pixel">${title}</p>${text ? `<p>${text}</p>` : ""}<div class="g-btns">` +
+    btns.map((b, i) => `<button class="yes${b.alt ? " alt" : ""}" data-i="${i}">${b.label}</button>`).join("") + `</div>`;
+  el.querySelectorAll("button").forEach(btn => btn.addEventListener("click", e => { e.stopPropagation(); btns[+btn.dataset.i].fn(); }));
+}
+function startLevel(i){
+  gLevel = i; gGot = 0; gQuiz = 0; gObjs = []; gSince = 0; gSpawn = 40; gPlay = false;
+  girl.y = GROUND - 16; girl.vy = 0; girl.hit = 0;
+  updateHud(); overlay(G_LV[i].quiz ? { type: "quiz" } : { type: "intro" });
+}
+function nextLevel(){
+  if (gLevel + 1 < G_LV.length) startLevel(gLevel + 1);
+  else { overlay({ type: "end" }); rain(3500); }
+}
+function jump(){ if (gPlay && girl.y >= GROUND - 16.5) girl.vy = -3.7; }
+function gTick(ts){
+  if ($("gameScene").hidden){ gLoopOn = false; return; }
+  const dt = Math.min(3, (ts - gLast) / 16.67) || 1; gLast = ts;
+  gUpdate(dt); gDraw(); requestAnimationFrame(gTick);
+}
+function openGame(){
+  $("final").hidden = true; $("gameScene").hidden = false; window.scrollTo(0, 0);
+  startLevel(0);
+  if (!gLoopOn){ gLoopOn = true; gLast = performance.now(); requestAnimationFrame(gTick); }
+}
+function closeGame(){ gPlay = false; gOv = null; $("gameScene").hidden = true; $("final").hidden = false; window.scrollTo(0, 0); }
+$("playBtn").addEventListener("click", openGame);
+$("gBack").addEventListener("click", closeGame);
+$("gWrap").addEventListener("pointerdown", e => { if (e.target.closest("button")) return; e.preventDefault(); jump(); });
+addEventListener("keydown", e => {
+  if ($("gameScene").hidden || !gPlay) return;
+  if (e.code === "Space" || e.code === "ArrowUp"){ e.preventDefault(); jump(); }
+});
+window.gameText = () => {
+  const G = gt();
+  $("playBtn").textContent = G.play; $("gKicker").textContent = G.kicker; $("gTitle").textContent = G.title;
+  $("gHelp").textContent = G.help; $("gBack").textContent = G.back;
+  updateHud(); drawOverlay();
+};
+window.gameText();
+gDraw();
 </script>
 
 </body>
