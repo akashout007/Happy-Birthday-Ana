@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -19,13 +19,17 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%}
-body{background:radial-gradient(circle at 50% 0%, var(--cream) 0%, var(--bg) 45%, var(--bg2) 100%) fixed, var(--bg);
-  color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.55; overflow-x:hidden}
-.stage{min-height:100%; display:grid; place-items:center; padding-block:32px;
+html{-webkit-text-size-adjust:100%; text-size-adjust:100%; overflow-x:hidden}
+html,body{min-height:100%}
+body{background:var(--bg); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.55; overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent}
+body::after{content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(circle at 50% 0%, var(--cream) 0%, var(--bg) 45%, var(--bg2) 100%)}
+button{touch-action:manipulation; -webkit-user-select:none; user-select:none}
+.stage{min-height:100vh; min-height:100dvh; overflow-x:clip; display:grid; place-items:center; padding-block:32px;
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px))}
 .scene{width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; gap:22px; text-align:center;
-  animation:rise .6s ease both}
+  animation:rise .6s ease backwards}
 @keyframes rise{from{transform:translateY(14px); opacity:.4} to{transform:none; opacity:1}}
 h1,h2{font-family:var(--display); font-weight:400; margin:0; text-wrap:balance; color:var(--berry-dk); line-height:1.15}
 h1{font-size:clamp(34px, 8vw, 52px)}
@@ -39,7 +43,8 @@ button{font-family:var(--body); font-weight:800; font-size:18px; border:0; borde
   transition:transform .25s cubic-bezier(.3,1.6,.5,1), background .2s}
 button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
 .yes{background:var(--berry); color:var(--cream); box-shadow:0 6px 0 var(--berry-dk); transform-origin:center}
-.yes:hover{background:var(--berry-dk)}
+@media (hover:hover){ .yes:hover{background:var(--berry-dk)} }
+.yes:active{background:var(--berry-dk)}
 .no{background:var(--cream); color:var(--ink); box-shadow:0 4px 0 #e8b9c4}
 .no.fleeing{position:fixed; z-index:5; transition:left .25s ease, top .25s ease, transform .25s}
 .ghost{background:transparent; color:var(--muted); font-weight:600; font-size:15px; padding:8px 14px; text-decoration:underline}
@@ -97,8 +102,33 @@ button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
 .scene{position:relative; isolation:isolate; padding:28px 12px}
 .scene::before{content:""; position:absolute; inset:-60px -40px; z-index:-1; pointer-events:none;
   background:radial-gradient(closest-side, rgba(255,232,237,.97) 0%, rgba(255,232,237,.93) 62%, rgba(255,232,237,0) 100%)}
-#confetti{position:fixed; inset:0; pointer-events:none; z-index:10}
-@media (max-width:420px){ .reasons{grid-template-columns:repeat(2,1fr)} .cake{transform:scale(.9)} }
+.lang-btn{position:fixed; z-index:20; top:calc(12px + env(safe-area-inset-top,0px)); right:max(12px, env(safe-area-inset-right,0px));
+  background:var(--cream); color:var(--berry-dk); font-size:14px; font-weight:800; padding:9px 16px; box-shadow:0 3px 0 #e8b9c4;
+  border:2px solid var(--berry-dk)}
+.lang-btn:active{transform:translateY(2px); box-shadow:0 1px 0 #e8b9c4}
+#confetti{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10}
+/* Small phones */
+@media (max-width:360px){
+  .cake{transform:scale(.85); margin-top:28px} .letter{font-size:21px; padding:22px 18px}
+  .reason{height:132px} .reason .face{font-size:13px} button{padding:12px 24px; font-size:17px}
+}
+/* Tablets */
+@media (min-width:700px){
+  .scene{max-width:680px; gap:28px}
+  .kicker{font-size:32px} p{font-size:18px}
+  #env{width:340px}
+  .pixel{font-size:24px} .pixel.small{font-size:13px}
+  .cake{transform:scale(1.25); margin:70px 0 30px}
+  .letter{font-size:30px; padding:40px 44px}
+  .reason{height:150px} .reason .face{font-size:17px; padding:16px} .reason .front{font-size:40px}
+  button{font-size:20px; padding:16px 36px}
+}
+/* Phones held sideways */
+@media (max-height:520px) and (orientation:landscape){
+  .stage{padding-block:16px} .scene{gap:12px; padding-block:12px}
+  #env{width:180px} .cake{transform:scale(.8); margin-top:24px}
+  h1{font-size:30px} h2{font-size:24px}
+}
 @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
 </style>
 </head>
@@ -106,32 +136,33 @@ button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
 
 <canvas id="bgPixels" aria-hidden="true"></canvas>
 <canvas id="confetti"></canvas>
+<button class="lang-btn" id="langBtn">Translate</button>
 <main class="stage">
 
   <!-- Scene 0: the envelope -->
   <section class="scene" id="intro">
-    <h1 class="pixel" id="envTitle">A letter for you</h1>
-    <button class="env-btn" id="envBtn" aria-label="Open the letter"><canvas id="env" width="32" height="30"></canvas></button>
-    <p class="pixel small" id="envHint">Tap to open</p>
+    <h1 class="pixel" id="envTitle"></h1>
+    <button class="env-btn" id="envBtn"><canvas id="env" width="32" height="30"></canvas></button>
+    <p class="pixel small" id="envHint"></p>
   </section>
 
   <!-- Scene 1: the ask -->
   <section class="scene" id="ask" hidden>
-    <p class="kicker" id="hello">Hey you…</p>
-    <h1 id="question">Will you let me make today all about you?</h1>
-    <p id="sub">Choose carefully. There is fun involved.</p>
+    <p class="kicker" id="hello"></p>
+    <h1 id="question"></h1>
+    <p id="sub"></p>
     <div class="choices">
-      <button class="yes" id="yesBtn">Yes</button>
-      <button class="no" id="noBtn">No</button>
+      <button class="yes" id="yesBtn"></button>
+      <button class="no" id="noBtn"></button>
     </div>
   </section>
 
   <!-- Scene 2: the cake -->
   <section class="scene" id="cakeScene" hidden>
-    <p class="kicker">Good choice.</p>
-    <h2>Close your eyes. Make a wish.</h2>
-    <p>Now tap each candle to blow it out.</p>
-    <div class="cake" aria-label="Birthday cake">
+    <p class="kicker" id="cakeKicker"></p>
+    <h2 id="cakeTitle"></h2>
+    <p id="cakeHint"></p>
+    <div class="cake">
       <div class="candles" id="candles"></div>
       <div class="tier t2"><div class="drip"></div></div>
       <div class="tier t1"><div class="drip"></div><div class="sprinkles"></div></div>
@@ -142,44 +173,84 @@ button:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
 
   <!-- Scene 3: the letter -->
   <section class="scene" id="final" hidden>
-    <p class="kicker">Your wish is officially on its way.</p>
-    <h1 id="hbd">Happy Birthday!</h1>
+    <p class="kicker" id="finalKicker"></p>
+    <h1 id="hbd"></h1>
     <div class="letter" id="letter"></div>
-    <p class="section-label">Why you're my person · tap to open</p>
+    <p class="section-label" id="reasonsLabel"></p>
     <div class="reasons" id="reasons"></div>
-    <button class="ghost" id="again">Blow the candles again</button>
+    <button class="ghost" id="again"></button>
   </section>
 </main>
 
 <script>
 /* ============ EDIT THESE ============ */
 const CONFIG = {
-  name: "Ana",                  // her name or nickname
-  age: 25,
   candles: ["2", "5"],          // number candles on the cake
-  from: "Yours, Akash 🐾",        // how you sign the letter
-  letter: [
-    "Ana, a real letter is already on its way to you in Venice. Until it reaches you, here's a virtual one for meri jaan.",
-    "Thank you for being with me. When I'm at my best, when I'm at my worst, and every time in between when I'm annoying you.",
-    "This one we celebrate apart, but the next birthday we celebrate together. Fingers crossed it doesn't fall on Durga Puja, and fingers crossed my visa passes."
-  ],
-  reasons: [
-    "You're there when I'm at my best",
-    "You're there when I'm at my worst",
-    "You put up with me even when I annoy you",
-    "Food doesn't taste as good without you, peanuts"
-  ],
-  noLines: [
-    "Are you sure?", "Really sure?", "Think again.", "I already bought the cake.",
-    "The candles are getting nervous.", "You're breaking my heart.", "Okay, now you're just playing.",
-    "The No button has given up."
-  ]
+  startLang: "it"               // page opens in Italian; the button switches to English
+};
+const TEXT = {
+  it: {
+    langBtn: "Translate",
+    envTitle: "Una lettera per te, Ana",
+    envHint: { tap: "Tocca per aprire", opening: "Si apre…", done: "Per te" },
+    hello: "Ciao Ana…",
+    question: "Posso rendere questa giornata tutta per te?",
+    sub: "Scegli bene. Ci sarà da divertirsi.",
+    yes: "Sì", no: "No",
+    noLines: ["Sei sicura?", "Proprio sicura?", "Ripensaci.", "Ho già comprato la torta.",
+      "Le candeline si stanno agitando.", "Mi stai spezzando il cuore.", "Ok, adesso mi prendi in giro.",
+      "Il pulsante No si è arreso."],
+    cakeKicker: "Ottima scelta.",
+    cakeTitle: "Chiudi gli occhi. Esprimi un desiderio.",
+    cakeHint: "Ora tocca ogni candelina per spegnerla.",
+    count: n => n ? `${n} ${n > 1 ? "candeline ancora accese" : "candelina ancora accesa"}` : "Desiderio inviato",
+    finalKicker: "Il tuo desiderio è ufficialmente in viaggio.",
+    hbd: "Buon 25° compleanno, Ana!",
+    letter: [
+      "Ana, una vera lettera è già in viaggio verso di te a Venezia. Finché non arriva, eccone una virtuale per meri jaan.",
+      "Grazie di essere con me. Quando do il meglio di me, quando do il peggio, e tutte le volte in mezzo in cui ti faccio arrabbiare.",
+      "Questo lo festeggiamo lontani, ma il prossimo compleanno lo festeggiamo insieme. Incrociamo le dita che non cada durante la Durga Puja, e che il mio visto venga approvato."
+    ],
+    from: "Tuo, Akash 🐾",
+    reasonsLabel: "Perché sei la mia persona · tocca per aprire",
+    reasons: ["Ci sei quando do il meglio di me", "Ci sei quando do il peggio di me",
+      "Mi sopporti anche quando ti faccio arrabbiare", "Il cibo non ha lo stesso sapore senza di te, peanuts"],
+    again: "Spegni di nuovo le candeline"
+  },
+  en: {
+    langBtn: "Traduci",
+    envTitle: "A letter for you, Ana",
+    envHint: { tap: "Tap to open", opening: "Opening…", done: "For you" },
+    hello: "Hey Ana…",
+    question: "Will you let me make today all about you?",
+    sub: "Choose carefully. There is fun involved.",
+    yes: "Yes", no: "No",
+    noLines: ["Are you sure?", "Really sure?", "Think again.", "I already bought the cake.",
+      "The candles are getting nervous.", "You're breaking my heart.", "Okay, now you're just playing.",
+      "The No button has given up."],
+    cakeKicker: "Good choice.",
+    cakeTitle: "Close your eyes. Make a wish.",
+    cakeHint: "Now tap each candle to blow it out.",
+    count: n => n ? `${n} candle${n > 1 ? "s" : ""} still burning` : "Wish sent",
+    finalKicker: "Your wish is officially on its way.",
+    hbd: "Happy 25th Birthday, Ana!",
+    letter: [
+      "Ana, a real letter is already on its way to you in Venice. Until it reaches you, here's a virtual one for meri jaan.",
+      "Thank you for being with me. When I'm at my best, when I'm at my worst, and every time in between when I'm annoying you.",
+      "This one we celebrate apart, but the next birthday we celebrate together. Fingers crossed it doesn't fall on Durga Puja, and fingers crossed my visa passes."
+    ],
+    from: "Yours, Akash 🐾",
+    reasonsLabel: "Why you're my person · tap to open",
+    reasons: ["You're there when I'm at my best", "You're there when I'm at my worst",
+      "You put up with me even when I annoy you", "Food doesn't taste as good without you, peanuts"],
+    again: "Blow the candles again"
+  }
 };
 /* ==================================== */
 
 const $ = id => document.getElementById(id);
-$("hello").textContent = "Hey " + CONFIG.name + "…";
-$("hbd").textContent = "Happy " + CONFIG.age + "th Birthday, " + CONFIG.name + "!";
+let lang = CONFIG.startLang, hintState = "tap";
+const t = () => TEXT[lang];
 
 // --- Background: pixel icons ---
 const PAL = { K:"#4a1626", R:"#d6335a", Y:"#f5b53f", M:"#9fd8c4", C:"#fff8ef", B:"#7fa8c9", G:"#6fb98a", W:"#b5763a", T:"#e2b07a" };
@@ -209,10 +280,17 @@ function drawBg(){
     map.forEach((row, y) => [...row].forEach((ch, x) => { if (PAL[ch]){ bx.fillStyle = PAL[ch]; bx.fillRect(ox + x * s, oy + y * s, s, s); } }));
   }
 }
-drawBg(); addEventListener("resize", drawBg);
+drawBg();
+// Phones fire resize while scrolling (address bar). Only redraw when the size really changes.
+let lastW = innerWidth, lastH = innerHeight, bgTimer;
+addEventListener("resize", () => {
+  clearTimeout(bgTimer);
+  bgTimer = setTimeout(() => {
+    if (innerWidth !== lastW || innerHeight > lastH + 120 || innerHeight < lastH - 120){ lastW = innerWidth; lastH = innerHeight; drawBg(); }
+  }, 150);
+});
 
 // --- Scene 0: pixel envelope ---
-$("envTitle").textContent = "A letter for you, " + CONFIG.name;
 const ecv = $("env"), ex = ecv.getContext("2d");
 const P = { ink:"#4a1626", env:"#f6b3c3", inside:"#d9879b", flap:"#f9c9d4", paper:"#fff8ef", line:"#e8b9c4", seal:"#d6335a" };
 const px = (x, y, c) => { ex.fillStyle = c; ex.fillRect(x, y, 1, 1); };
@@ -244,12 +322,12 @@ drawEnv("closed");
 let opened = false;
 $("envBtn").addEventListener("click", () => {
   if (opened) return; opened = true;
-  $("envBtn").classList.add("opening"); $("envHint").textContent = "Opening…";
+  $("envBtn").classList.add("opening"); hintState = "opening"; $("envHint").textContent = t().envHint.opening;
   drawEnv("open", 22);
   let top = 22;
   const step = setInterval(() => {
     top -= 2; drawEnv("open", top);
-    if (top <= 4){ clearInterval(step); $("envHint").textContent = "For you";
+    if (top <= 4){ clearInterval(step); hintState = "done"; $("envHint").textContent = t().envHint.done;
       setTimeout(() => { $("intro").hidden = true; $("ask").hidden = false; }, 900); }
   }, 110);
 });
@@ -259,14 +337,24 @@ let noCount = 0;
 const yes = $("yesBtn"), no = $("noBtn");
 function dodge(){
   noCount++;
-  const scale = Math.min(1 + noCount * 0.22, 3.2);
+  // Grow Yes, but never wider than ~75% of the screen
+  const maxScale = Math.max(1.2, Math.min((innerWidth * 0.75) / yes.offsetWidth, (innerHeight * 0.28) / yes.offsetHeight));
+  const scale = Math.min(1 + noCount * 0.22, 3.2, maxScale);
   yes.style.transform = `scale(${scale})`;
-  no.textContent = CONFIG.noLines[Math.min(noCount - 1, CONFIG.noLines.length - 1)];
-  if (noCount >= CONFIG.noLines.length) { no.hidden = true; return; }
+  setNoText();
+  if (noCount >= t().noLines.length) { no.hidden = true; return; }
   no.classList.add("fleeing");
+  // Jump somewhere on screen that doesn't cover the Yes button
+  // Where the Yes button WILL be once it finishes growing
+  const cur = yes.getBoundingClientRect(), cx = cur.left + cur.width / 2, cy = cur.top + cur.height / 2;
+  const hw = yes.offsetWidth * scale / 2, hh = yes.offsetHeight * scale / 2;
+  const yr = { left: cx - hw, right: cx + hw, top: cy - hh, bottom: cy + hh };
   const pad = 20, w = no.offsetWidth, h = no.offsetHeight;
-  const x = pad + Math.random() * Math.max(0, innerWidth - w - pad * 2);
-  const y = pad + Math.random() * Math.max(0, innerHeight - h - pad * 2);
+  let x, y, tries = 0;
+  do {
+    x = pad + Math.random() * Math.max(0, innerWidth - w - pad * 2);
+    y = pad + Math.random() * Math.max(0, innerHeight - h - pad * 2);
+  } while (tries++ < 60 && x < yr.right + 12 && x + w > yr.left - 12 && y < yr.bottom + 12 && y + h > yr.top - 12);
   no.style.left = x + "px"; no.style.top = y + "px";
 }
 no.addEventListener("click", dodge);
@@ -296,7 +384,7 @@ function buildCandles(){
   updateCount();
 }
 function updateCount(){
-  $("candleCount").textContent = lit ? `${lit} candle${lit > 1 ? "s" : ""} still burning` : "Wish sent";
+  $("candleCount").textContent = t().count(lit);
 }
 buildCandles();
 
@@ -306,11 +394,27 @@ function celebrate(){
   window.scrollTo(0, 0);
   rain(4500);
 }
-$("letter").innerHTML = CONFIG.letter.map(l => `<p>${l}</p>`).join("<br>") +
-  `<p class="sign">${CONFIG.from}</p>`;
-$("reasons").innerHTML = CONFIG.reasons.map((r, i) =>
-  `<button class="reason" aria-label="Reason ${i + 1}"><div class="inner"><div class="face front">${i + 1}</div><div class="face back">${r}</div></div></button>`
+$("reasons").innerHTML = TEXT.en.reasons.map((r, i) =>
+  `<button class="reason"><div class="inner"><div class="face front">${i + 1}</div><div class="face back"></div></div></button>`
 ).join("");
+
+// --- Language: fill every piece of text from TEXT[lang] ---
+function setNoText(){ $("noBtn").textContent = noCount ? t().noLines[Math.min(noCount - 1, t().noLines.length - 1)] : t().no; }
+function render(){
+  const s = t();
+  document.documentElement.lang = lang;
+  $("langBtn").textContent = s.langBtn;
+  $("langBtn").setAttribute("aria-label", lang === "it" ? "Show in English" : "Mostra in italiano");
+  ["envTitle", "hello", "question", "sub", "cakeKicker", "cakeTitle", "cakeHint", "finalKicker", "hbd", "reasonsLabel", "again"]
+    .forEach(k => { $(k).textContent = s[k]; });
+  $("envHint").textContent = s.envHint[hintState];
+  $("yesBtn").textContent = s.yes; setNoText();
+  updateCount();
+  $("letter").innerHTML = s.letter.map(l => `<p>${l}</p>`).join("<br>") + `<p class="sign">${s.from}</p>`;
+  document.querySelectorAll(".reason .back").forEach((el, i) => { el.textContent = s.reasons[i]; });
+}
+$("langBtn").addEventListener("click", () => { lang = lang === "it" ? "en" : "it"; render(); });
+render();
 document.querySelectorAll(".reason").forEach(b => b.addEventListener("click", () => {
   b.classList.toggle("flipped"); if (b.classList.contains("flipped")) burst(14, b);
 }));
